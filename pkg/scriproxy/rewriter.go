@@ -98,6 +98,68 @@ func newHeaderSetFunc(header http.Header) *headerSetFunc {
 	}
 }
 
+type headerAddFunc struct {
+	*funcBase
+	header http.Header
+}
+
+func (o *headerAddFunc) Call(args ...objects.Object) (ret objects.Object, err error) {
+	if len(args) != 2 {
+		return nil, objects.ErrWrongNumArguments
+	}
+
+	k, ok := objects.ToString(args[0])
+
+	if !ok {
+		return nil, objects.ErrInvalidArgumentType{}
+	}
+
+	v, ok := objects.ToString(args[1])
+
+	if !ok {
+		return nil, objects.ErrInvalidArgumentType{}
+	}
+
+	o.header.Add(k, v)
+
+	return objects.UndefinedValue, nil
+}
+
+func newHeaderAddFunc(header http.Header) *headerAddFunc {
+	return &headerAddFunc{
+		&funcBase{"headerAddFunc"},
+		header,
+	}
+}
+
+type headerDelFunc struct {
+	*funcBase
+	header http.Header
+}
+
+func (o *headerDelFunc) Call(args ...objects.Object) (ret objects.Object, err error) {
+	if len(args) != 1 {
+		return nil, objects.ErrWrongNumArguments
+	}
+
+	k, ok := objects.ToString(args[0])
+
+	if !ok {
+		return nil, objects.ErrInvalidArgumentType{}
+	}
+
+	o.header.Del(k)
+
+	return objects.UndefinedValue, nil
+}
+
+func newHeaderDelFunc(header http.Header) *headerDelFunc {
+	return &headerDelFunc{
+		&funcBase{"headerDelFunc"},
+		header,
+	}
+}
+
 type queryGetFunc struct {
 	*funcBase
 	values url.Values
@@ -158,6 +220,34 @@ func newQuerySetFunc(values url.Values) *querySetFunc {
 	}
 }
 
+type queryDelFunc struct {
+	*funcBase
+	values url.Values
+}
+
+func (o queryDelFunc) Call(args ...objects.Object) (ret objects.Object, err error) {
+	if len(args) != 1 {
+		return nil, objects.ErrWrongNumArguments
+	}
+
+	k, ok := objects.ToString(args[0])
+
+	if !ok {
+		return nil, objects.ErrInvalidArgumentType{}
+	}
+
+	o.values.Del(k)
+
+	return objects.UndefinedValue, nil
+}
+
+func newQueryDelFunc(values url.Values) *queryDelFunc {
+	return &queryDelFunc{
+		&funcBase{"queryDelFunc"},
+		values,
+	}
+}
+
 // RequestRewriter can be used to rewrite http requests.
 type RequestRewriter struct {
 	compiledScript *script.Compiled
@@ -184,11 +274,14 @@ func NewRequestRewriter(
 			"query": map[string]interface{}{
 				"get": newQueryGetFunc(nil),
 				"set": newQuerySetFunc(nil),
+				"del": newQueryDelFunc(nil),
 			},
 		},
 		"header": map[string]interface{}{
 			"get": newHeaderGetFunc(nil),
 			"set": newHeaderSetFunc(nil),
+			"add": newHeaderAddFunc(nil),
+			"del": newHeaderDelFunc(nil),
 		},
 	}); err != nil {
 		return RequestRewriter{}, err
@@ -218,11 +311,14 @@ func (w RequestRewriter) Rewrite(request *http.Request) error {
 			"query": map[string]interface{}{
 				"get": newQueryGetFunc(query),
 				"set": newQuerySetFunc(query),
+				"del": newQueryDelFunc(query),
 			},
 		},
 		"header": map[string]interface{}{
 			"get": newHeaderGetFunc(request.Header),
 			"set": newHeaderSetFunc(request.Header),
+			"add": newHeaderAddFunc(request.Header),
+			"del": newHeaderDelFunc(request.Header),
 		},
 	}
 
