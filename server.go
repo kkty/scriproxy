@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kkty/scriproxy/pkg/scriproxy"
@@ -59,18 +60,19 @@ func main() {
 
 	defer logger.Sync()
 
+	mu := sync.Mutex{}
+
 	times := make(map[*http.Request]time.Time)
 	loggers := make(map[*http.Request]*zap.Logger)
 
 	proxy := httputil.ReverseProxy{
+		ErrorLog: zap.NewStdLog(logger),
 		Director: func(req *http.Request) {
 			logger := logger.With(
 				zap.String("method", req.Method),
 				zap.String("remote_addr", req.RemoteAddr),
 				zap.String("original_user_agent", req.UserAgent()),
 				zap.String("original_host", req.Host),
-				zap.String("original_url_scheme", req.URL.Scheme),
-				zap.String("original_url_host", req.URL.Host),
 				zap.String("original_url_path", req.URL.Path),
 				zap.String("original_url_query", req.URL.RawQuery),
 			)
@@ -85,10 +87,16 @@ func main() {
 				zap.String("url_query", req.URL.RawQuery),
 			)
 
+			mu.Lock()
+			defer mu.Unlock()
+
 			loggers[req] = logger
 			times[req] = time.Now()
 		},
 		ModifyResponse: func(res *http.Response) error {
+			mu.Lock()
+			defer mu.Unlock()
+
 			loggers[res.Request].Info("received_response",
 				zap.Int("status_code", res.StatusCode),
 				zap.Duration("elapsed", time.Now().Sub(times[res.Request])))
@@ -99,6 +107,9 @@ func main() {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
+			mu.Lock()
+			defer mu.Unlock()
+
 			logger.Error("error_from_proxy",
 				zap.Duration("elapsed", time.Now().Sub(times[req])),
 				zap.Error(err))
