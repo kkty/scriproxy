@@ -2,6 +2,7 @@ package scriproxy
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"testing"
 
@@ -157,4 +158,43 @@ func TestRequestRewriter(t *testing.T) {
 			},
 		)
 	})
+}
+
+func benchmarkRequestRewriter(
+	b *testing.B,
+	req *http.Request,
+	script string,
+	libraries []string,
+) {
+	requestRewriter, err := NewRequestRewriter([]byte(script), libraries)
+
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	requests := make([]*http.Request, b.N)
+
+	for i := 0; i < b.N; i++ {
+		requests[i] = req.Clone(context.Background())
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		requestRewriter.Rewrite(requests[i])
+	}
+}
+
+func BenchmarkRequestRewriter(b *testing.B) {
+	req, err := http.NewRequest("GET", "http://example.com/?foo=bar", &bytes.Buffer{})
+
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	benchmarkRequestRewriter(
+		b, req,
+		`req.url.query.set("baz", req.url.query.get("foo"))`,
+		[]string{},
+	)
 }
