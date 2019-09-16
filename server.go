@@ -35,7 +35,7 @@ func main() {
 	_, err := flags.Parse(&opts)
 
 	if err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	script, err := readBytesFromFile(opts.ScriptFileName)
