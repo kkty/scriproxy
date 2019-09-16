@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/d5/tengo v1.24.3
+	github.com/jessevdk/go-flags v1.4.0
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rs/xid v1.2.1
 	github.com/stretchr/testify v1.4.0

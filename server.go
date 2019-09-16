@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,9 +11,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jessevdk/go-flags"
 	"github.com/kkty/scriproxy/pkg/scriproxy"
 	"go.uber.org/zap"
 )
+
+var opts struct {
+	ScriptFileName string `long:"script" required:"true" description:"The path to a tengo script for rewriting requests"`
+	Libraries      string `long:"libraries" description:"The tengo libraries used in the script, separated by commas"`
+}
 
 func readBytesFromFile(fileName string) ([]byte, error) {
 	f, err := os.Open(fileName)
@@ -27,17 +32,13 @@ func readBytesFromFile(fileName string) ([]byte, error) {
 }
 
 func main() {
-	var scriptFileName, libraries string
+	_, err := flags.Parse(&opts)
 
-	flag.StringVar(&scriptFileName, "script", "", "")
-	flag.StringVar(&libraries, "libraries", "", "")
-	flag.Parse()
-
-	if scriptFileName == "" {
-		log.Fatal("--script should be specified")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	script, err := readBytesFromFile(scriptFileName)
+	script, err := readBytesFromFile(opts.ScriptFileName)
 
 	if err != nil {
 		log.Fatal(err)
@@ -45,7 +46,7 @@ func main() {
 
 	requestRewriter, err := scriproxy.NewRequestRewriter(
 		script,
-		strings.Split(libraries, ","),
+		strings.Split(opts.Libraries, ","),
 	)
 
 	if err != nil {
