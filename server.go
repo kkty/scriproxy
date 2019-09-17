@@ -78,7 +78,9 @@ func main() {
 				zap.String("original_url_query", req.URL.RawQuery),
 			)
 
-			requestRewriter.Rewrite(req)
+			if err := requestRewriter.Rewrite(req); err != nil {
+				logger.Error("error in rewrite", zap.Error(err))
+			}
 
 			logger = logger.With(
 				zap.String("host", req.Host),
@@ -126,5 +128,7 @@ func main() {
 		port = "80"
 	}
 
-	http.ListenAndServe(fmt.Sprintf(":%s", port), &proxy)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), &proxy); err != nil {
+		logger.Error("error in serve", zap.Error(err))
+	}
 }
