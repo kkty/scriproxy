@@ -1,5 +1,7 @@
 # Scriproxy
 
+[![codecov](https://codecov.io/gh/kkty/scriproxy/branch/master/graph/badge.svg)](https://codecov.io/gh/kkty/scriproxy)
+
 ## Features
 
 - Scriproxy is an easy-to-use **scriptable** reverse proxy.
