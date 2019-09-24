@@ -16,4 +16,9 @@ jobs:
 
     - name: Test
       run: |
-        go test ./pkg/scriproxy -cover
+        go test ./pkg/... -coverprofile=coverage.txt
+
+    - name: Codecov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: bash <(curl -s https://codecov.io/bash)
